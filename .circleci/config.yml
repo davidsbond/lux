@@ -1,0 +1,26 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: instrumentisto/dep
+
+    working_directory: /go/src/github.com/davidsbond/lux
+
+    steps:
+      - checkout
+      - run:
+          name: Create test directory
+          command: mkdir -p $TEST_RESULTS
+      - run:
+          name: Get dependencies
+          command: |
+            dep ensure
+            go get github.com/jstemmer/go-junit-report
+            go install github.com/jstemmer/go-junit-report
+      - run:
+          name: Run tests & benchmarks
+          command: |
+            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+            go test -v ./... | tee ${TEST_RESULTS}/go-test.out
+      - store_test_results:
+          path: /temp/test-results
