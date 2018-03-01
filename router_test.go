@@ -1,9 +1,12 @@
 package lux_test
 
 import (
+	"bytes"
 	"errors"
 	"net/http"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/davidsbond/lux"
@@ -20,6 +23,7 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 		ExpectedError  string
 		ExpectedStatus int
 	}{
+		// Scenario 1: Valid request & happy path middleware
 		{
 			Request: events.APIGatewayProxyRequest{
 				HTTPMethod: "GET",
@@ -29,6 +33,7 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 			ExpectedStatus: http.StatusOK,
 			Middleware:     middleware,
 		},
+		// Scenario 2: Valid request but middleware returns an error.
 		{
 			Request: events.APIGatewayProxyRequest{
 				HTTPMethod: "GET",
@@ -42,16 +47,22 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 	}
 
 	for _, tc := range tt {
+		// GIVEN that we have a router
 		router := lux.NewRouter()
+		router.Logging(bytes.NewBuffer([]byte{}), &logrus.JSONFormatter{})
 
+		// AND that router has registered handlers
 		for method, handler := range tc.Handlers {
 			router.Handler(method, handler).Headers("content-type", "application/json")
 		}
 
+		// AND the router has registered middleware
 		router.Middleware(tc.Middleware)
 
+		// WHEN we perform a request
 		resp, _ := router.HandleRequest(tc.Request)
 
+		// THEN the status code & body should be what we expect.
 		assert.Equal(t, tc.ExpectedError, resp.Body)
 		assert.Equal(t, tc.ExpectedStatus, resp.StatusCode)
 	}
@@ -120,6 +131,7 @@ func TestRouter_HandlesRequests(t *testing.T) {
 	for _, tc := range tt {
 		// GIVEN that we have a router
 		router := lux.NewRouter()
+		router.Logging(bytes.NewBuffer([]byte{}), &logrus.JSONFormatter{})
 
 		// AND that router has handlers registered
 		for method, handler := range tc.Handlers {
@@ -148,6 +160,7 @@ func TestRouter_Recovers(t *testing.T) {
 		ExpectedError  string
 		ExpectedStatus int
 	}{
+		// Scenario 1: Handler panics
 		{
 			Request: events.APIGatewayProxyRequest{
 				HTTPMethod: "GET",
@@ -160,6 +173,7 @@ func TestRouter_Recovers(t *testing.T) {
 	for _, tc := range tt {
 		// GIVEN that we have a router with a recovery handler.
 		router := lux.NewRouter().Recovery(recoverHandler)
+		router.Logging(bytes.NewBuffer([]byte{}), &logrus.JSONFormatter{})
 
 		// AND that router has handlers registered
 		for method, handler := range tc.Handlers {
