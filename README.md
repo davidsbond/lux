@@ -43,7 +43,7 @@ func main() {
 Defining a handler is fairly straightforward. You can have one handler per HTTP method. the signature for any handler function is as follows:
 
 ```go
-func handler(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error){
+func handler(r lux.Request) (lux.Response, error){
   // handle
 }
 ```
@@ -67,7 +67,7 @@ In the scenario where a request is made with invalid headers, a `400` response i
 In the event a process in your handler causes a panic, the router will automatically recover for you. However, if you want to handle recovery yourself, you can provide a custom panic handler. The signature for a panic handler is as follows:
 
 ```go
-func onPanic(r events.APIGatewayProxyRequest, err error) {
+func onPanic(r lux.Request, err error) {
   // handle
 }
 ```
@@ -93,7 +93,7 @@ The second parmeter is a logrus formatter, which will output the logs as JSON. Y
 You can also provide custom middleware functions that can modify a request before it reaches your handler. The method signature for a middleware function is as follows:
 
 ```go
-func middleware(r *events.APIGatewayProxyRequest) error {
+func middleware(r *lux.Request) error {
   // do something to the request
 }
 ```
