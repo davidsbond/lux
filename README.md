@@ -54,7 +54,13 @@ Then you can register your handler function
 router.Handler("GET", handler)
 ```
 
-Whenever a GET request is made to the lambda function, the handler will be called.
+Whenever a GET request is made to the lambda function, the handler will be called. You can also specify which headers must be present for a request to reach your handler. For example, if we only want JSON requests, we can specify:
+
+```go
+router.Handler("GET", handler).Headers("Content-Type", "application/json")
+```
+
+In the scenario where a request is made with invalid headers, a `400` response is returned.
 
 ## recovery
 
