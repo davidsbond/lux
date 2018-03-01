@@ -34,3 +34,47 @@ func main() {
   lambda.Start(router.HandleRequest)
 }
 ```
+
+## handlers
+
+Defining a handler is fairly straightforward. You can have one handler per HTTP method. the signature for any handler function is as follows:
+
+```go
+func handler(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error){
+  // handle
+}
+```
+
+Then you can register your handler function
+
+```go
+router.Handler("GET", handler)
+```
+
+Whenever a GET request is made to the lambda function, the handler will be called.
+
+## recovery
+
+In the event a process in your handler causes a panic, the router will automatically recover for you. However, if you want to handle recovery yourself, you can provide a custom panic handler. The signature for a panic handler is as follows:
+
+```go
+func onPanic(events.APIGatewayProxyRequest, error) {
+  // handle
+}
+```
+
+Then you can tell the router to use your custom panic handler:
+
+```go
+router.Recovery(onPanic)
+```
+
+## logging
+
+The router uses [logrus](https://github.com/sirupsen/logrus), a structured logger. You can either choose to disable the logs of the router or you can provide some configuration for it. AWS automatically logs the output of `stderr` and `stdout`, so you can specify that the router should log to either of these like this:
+
+```go
+router.Logging(os.Stdout, &logrus.JSONFormatter{})
+```
+
+The second parmeter is a logrus formatter, which will output the logs as JSON. You can also provide a custom formatter, see [logrus' godoc page](https://godoc.org/github.com/sirupsen/logrus#Formatter) for more info on custom formatters
