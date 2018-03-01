@@ -23,6 +23,9 @@ func main() {
   // logged by AWS.
   router.Logging(os.Stdout, &logrus.JSONFormatter{})
 
+  // Register some middleware
+  router.Middleware(middlewareFunc)
+
   // Configure your routes for different HTTP methods. You can specify headers that
   // the request must contain to use this route.
   router.Handler("GET", getFunc).Headers("Content-Type", "application/json")
