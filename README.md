@@ -67,7 +67,7 @@ In the scenario where a request is made with invalid headers, a `400` response i
 In the event a process in your handler causes a panic, the router will automatically recover for you. However, if you want to handle recovery yourself, you can provide a custom panic handler. The signature for a panic handler is as follows:
 
 ```go
-func onPanic(r events.APIGatewayProxyRequest, error) {
+func onPanic(r events.APIGatewayProxyRequest, err error) {
   // handle
 }
 ```
