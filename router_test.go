@@ -1,6 +1,7 @@
 package lux_test
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
@@ -9,7 +10,56 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRouter_UsesMiddleware(t *testing.T) {
+	t.Parallel()
+
+	tt := []struct {
+		Middleware     lux.MiddlewareFunc
+		Request        events.APIGatewayProxyRequest
+		Handlers       map[string]lux.HandlerFunc
+		ExpectedError  string
+		ExpectedStatus int
+	}{
+		{
+			Request: events.APIGatewayProxyRequest{
+				HTTPMethod: "GET",
+				Headers:    map[string]string{"content-type": "application/json"},
+			},
+			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
+			ExpectedStatus: http.StatusOK,
+			Middleware:     middleware,
+		},
+		{
+			Request: events.APIGatewayProxyRequest{
+				HTTPMethod: "GET",
+				Headers:    map[string]string{"content-type": "application/json"},
+			},
+			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
+			ExpectedStatus: http.StatusInternalServerError,
+			Middleware:     errorMiddleware,
+			ExpectedError:  "error",
+		},
+	}
+
+	for _, tc := range tt {
+		router := lux.NewRouter()
+
+		for method, handler := range tc.Handlers {
+			router.Handler(method, handler).Headers("content-type", "application/json")
+		}
+
+		router.Middleware(tc.Middleware)
+
+		resp, _ := router.HandleRequest(tc.Request)
+
+		assert.Equal(t, tc.ExpectedError, resp.Body)
+		assert.Equal(t, tc.ExpectedStatus, resp.StatusCode)
+	}
+}
+
 func TestRouter_HandlesRequests(t *testing.T) {
+	t.Parallel()
+
 	tt := []struct {
 		Request        events.APIGatewayProxyRequest
 		Handlers       map[string]lux.HandlerFunc
@@ -90,6 +140,8 @@ func TestRouter_HandlesRequests(t *testing.T) {
 }
 
 func TestRouter_Recovers(t *testing.T) {
+	t.Parallel()
+
 	tt := []struct {
 		Request        events.APIGatewayProxyRequest
 		Handlers       map[string]lux.HandlerFunc
@@ -139,4 +191,12 @@ func recoverHandler(req events.APIGatewayProxyRequest, err error) {
 
 func panicHandler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	panic("uh oh")
+}
+
+func errorMiddleware(req *events.APIGatewayProxyRequest) error {
+	return errors.New("error")
+}
+
+func middleware(req *events.APIGatewayProxyRequest) error {
+	return nil
 }

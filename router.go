@@ -20,9 +20,10 @@ type (
 	// The Router type handles incoming requests & routes them to the registered
 	// handlers.
 	Router struct {
-		routes   []*Route
-		recovery RecoverFunc
-		log      *logrus.Logger
+		routes     []*Route
+		middleware []MiddlewareFunc
+		recovery   RecoverFunc
+		log        *logrus.Logger
 	}
 
 	// The Route type defines a route that can be used by the router.
@@ -35,6 +36,9 @@ type (
 	// The HandlerFunc type defines what a handler function should look like.
 	HandlerFunc func(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)
 
+	// The MiddlewareFunc type defines what a middleware function should look like.
+	MiddlewareFunc func(*events.APIGatewayProxyRequest) error
+
 	// The RecoverFunc type defines what a panic recovery function should look like.
 	RecoverFunc func(events.APIGatewayProxyRequest, error)
 )
@@ -42,8 +46,9 @@ type (
 // NewRouter creates a new lambda router.
 func NewRouter() *Router {
 	return &Router{
-		routes: []*Route{},
-		log:    logrus.New(),
+		routes:     []*Route{},
+		middleware: []MiddlewareFunc{},
+		log:        logrus.New(),
 	}
 }
 
@@ -62,6 +67,15 @@ func (r *Router) Handler(method string, fn HandlerFunc) *Route {
 	}).Info("registered new handler")
 
 	return route
+}
+
+// Middleware adds a middleware function to the router. These methods will be called
+// prior to the route handler and allow you to modify the inbound request before
+// processing it.
+func (r *Router) Middleware(fn MiddlewareFunc) *Router {
+	r.middleware = append(r.middleware, fn)
+
+	return r
 }
 
 // Recovery sets a custom recovery handler that will be used when any
@@ -83,6 +97,8 @@ func (r *Router) Logging(out io.Writer, format logrus.Formatter) *Router {
 // HandleRequest determines which route an incoming HTTP request should be sent down. If no route has been
 // specified for a given HTTP method, an error is returned.
 func (r *Router) HandleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	var resp events.APIGatewayProxyResponse
+
 	defer r.recover(req)
 	ts := time.Now()
 
@@ -96,6 +112,16 @@ func (r *Router) HandleRequest(req events.APIGatewayProxyRequest) (events.APIGat
 	for _, route := range r.routes {
 		// If the route supports the request, use it.
 		if route.canRoute(req) {
+			// Run any registered middleware
+			for _, mid := range r.middleware {
+				// If one returns an error, return a 500 response containing the error
+				if err := mid(&req); err != nil {
+					resp.Body = err.Error()
+					resp.StatusCode = http.StatusInternalServerError
+
+					return resp, nil
+				}
+			}
 
 			resp, err := route.handler(req)
 
@@ -117,10 +143,10 @@ func (r *Router) HandleRequest(req events.APIGatewayProxyRequest) (events.APIGat
 	}).Error("no handler specified to handle request")
 
 	// Otherwise, create an error response
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusBadRequest,
-		Body:       errNoRoute,
-	}, nil
+	resp.StatusCode = http.StatusBadRequest
+	resp.Body = errNoRoute
+
+	return resp, nil
 }
 
 func (r *Router) recover(req events.APIGatewayProxyRequest) {

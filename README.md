@@ -40,7 +40,7 @@ func main() {
 Defining a handler is fairly straightforward. You can have one handler per HTTP method. the signature for any handler function is as follows:
 
 ```go
-func handler(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error){
+func handler(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error){
   // handle
 }
 ```
@@ -58,7 +58,7 @@ Whenever a GET request is made to the lambda function, the handler will be calle
 In the event a process in your handler causes a panic, the router will automatically recover for you. However, if you want to handle recovery yourself, you can provide a custom panic handler. The signature for a panic handler is as follows:
 
 ```go
-func onPanic(events.APIGatewayProxyRequest, error) {
+func onPanic(r events.APIGatewayProxyRequest, error) {
   // handle
 }
 ```
@@ -78,3 +78,21 @@ router.Logging(os.Stdout, &logrus.JSONFormatter{})
 ```
 
 The second parmeter is a logrus formatter, which will output the logs as JSON. You can also provide a custom formatter, see [logrus' godoc page](https://godoc.org/github.com/sirupsen/logrus#Formatter) for more info on custom formatters
+
+## middleware
+
+You can also provide custom middleware functions that can modify a request before it reaches your handler. The method signature for a middleware function is as follows:
+
+```go
+func middleware(r *events.APIGatewayProxyRequest) error {
+  // do something to the request
+}
+```
+
+You can register the middleware like this:
+
+```go
+router.Middleware(middleware)
+```
+
+If the middleware method returns an error, the generated response will be a `500`. Middleware methods are executed in the order they are registered.

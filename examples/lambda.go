@@ -29,12 +29,19 @@ func main() {
 	router.Handler("POST", postFunc).Headers("Content-Type", "application/json")
 	router.Handler("DELETE", deleteFunc).Headers("Content-Type", "application/json")
 
+	router.Middleware(middleware)
+
 	// Start the lambda.
 	lambda.Start(router.HandleRequest)
 }
 
 func recoverFunc(r events.APIGatewayProxyRequest, err error) {
 	logrus.WithField("request", r).Errorf("recovered from panic, %v", err.Error())
+}
+
+func middleware(r *events.APIGatewayProxyRequest) error {
+	// perform some actions on the request
+	return nil
 }
 
 func getFunc(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
