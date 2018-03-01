@@ -43,30 +43,30 @@ func middleware(r *lux.Request) error {
 	return nil
 }
 
-func getFunc(r lux.Request) (lux.Response, error) {
+func getFunc(r lux.Request) lux.Response {
 	return lux.Response{
 		StatusCode: http.StatusOK,
 		Body:       "hello GET request",
-	}, nil
+	}
 }
 
-func postFunc(r lux.Request) (lux.Response, error) {
+func postFunc(r lux.Request) lux.Response {
 	return lux.Response{
 		StatusCode: http.StatusOK,
 		Body:       "hello POST request",
-	}, nil
+	}
 }
 
-func putFunc(r lux.Request) (lux.Response, error) {
+func putFunc(r lux.Request) lux.Response {
 	return lux.Response{
 		StatusCode: http.StatusOK,
 		Body:       "hello PUT request",
-	}, nil
+	}
 }
 
-func deleteFunc(r lux.Request) (lux.Response, error) {
+func deleteFunc(r lux.Request) lux.Response {
 	return lux.Response{
 		StatusCode: http.StatusOK,
 		Body:       "hello DELETE request",
-	}, nil
+	}
 }

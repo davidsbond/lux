@@ -192,17 +192,17 @@ func TestRouter_Recovers(t *testing.T) {
 	}
 }
 
-func getHandler(lux.Request) (lux.Response, error) {
+func getHandler(lux.Request) lux.Response {
 	return lux.Response{
 		StatusCode: http.StatusOK,
-	}, nil
+	}
 }
 
 func recoverHandler(req lux.Request, err error) {
 	// Do nothing
 }
 
-func panicHandler(req lux.Request) (lux.Response, error) {
+func panicHandler(req lux.Request) lux.Response {
 	panic("uh oh")
 }
 

@@ -34,7 +34,7 @@ type (
 	}
 
 	// The HandlerFunc type defines what a handler function should look like.
-	HandlerFunc func(Request) (Response, error)
+	HandlerFunc func(Request) Response
 
 	// The MiddlewareFunc type defines what a middleware function should look like.
 	MiddlewareFunc func(*Request) error
@@ -129,7 +129,7 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 				}
 			}
 
-			resp, err := route.handler(req)
+			resp := route.handler(req)
 
 			r.log.WithFields(logrus.Fields{
 				"status":    resp.StatusCode,
@@ -137,7 +137,7 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 				"requestId": req.RequestContext.RequestID,
 			}).Info("finished handling request")
 
-			return resp, err
+			return resp, nil
 		}
 	}
 
