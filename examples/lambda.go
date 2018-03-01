@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/davidsbond/lux"
 	"github.com/sirupsen/logrus"
@@ -35,38 +34,38 @@ func main() {
 	lambda.Start(router.HandleRequest)
 }
 
-func recoverFunc(r events.APIGatewayProxyRequest, err error) {
+func recoverFunc(r lux.Request, err error) {
 	logrus.WithField("request", r).Errorf("recovered from panic, %v", err.Error())
 }
 
-func middleware(r *events.APIGatewayProxyRequest) error {
+func middleware(r *lux.Request) error {
 	// perform some actions on the request
 	return nil
 }
 
-func getFunc(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
+func getFunc(r lux.Request) (lux.Response, error) {
+	return lux.Response{
 		StatusCode: http.StatusOK,
 		Body:       "hello GET request",
 	}, nil
 }
 
-func postFunc(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
+func postFunc(r lux.Request) (lux.Response, error) {
+	return lux.Response{
 		StatusCode: http.StatusOK,
 		Body:       "hello POST request",
 	}, nil
 }
 
-func putFunc(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
+func putFunc(r lux.Request) (lux.Response, error) {
+	return lux.Response{
 		StatusCode: http.StatusOK,
 		Body:       "hello PUT request",
 	}, nil
 }
 
-func deleteFunc(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
+func deleteFunc(r lux.Request) (lux.Response, error) {
+	return lux.Response{
 		StatusCode: http.StatusOK,
 		Body:       "hello DELETE request",
 	}, nil

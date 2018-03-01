@@ -34,13 +34,19 @@ type (
 	}
 
 	// The HandlerFunc type defines what a handler function should look like.
-	HandlerFunc func(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)
+	HandlerFunc func(Request) (Response, error)
 
 	// The MiddlewareFunc type defines what a middleware function should look like.
-	MiddlewareFunc func(*events.APIGatewayProxyRequest) error
+	MiddlewareFunc func(*Request) error
 
 	// The RecoverFunc type defines what a panic recovery function should look like.
-	RecoverFunc func(events.APIGatewayProxyRequest, error)
+	RecoverFunc func(Request, error)
+
+	// The Request type represents an incoming HTTP request.
+	Request events.APIGatewayProxyRequest
+
+	// The Response type represents an outgoing HTTP response.
+	Response events.APIGatewayProxyResponse
 )
 
 // NewRouter creates a new lambda router.
@@ -96,8 +102,8 @@ func (r *Router) Logging(out io.Writer, format logrus.Formatter) *Router {
 
 // HandleRequest determines which route an incoming HTTP request should be sent down. If no route has been
 // specified for a given HTTP method, an error is returned.
-func (r *Router) HandleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var resp events.APIGatewayProxyResponse
+func (r *Router) HandleRequest(req Request) (Response, error) {
+	var resp Response
 
 	defer r.recover(req)
 	ts := time.Now()
@@ -149,7 +155,7 @@ func (r *Router) HandleRequest(req events.APIGatewayProxyRequest) (events.APIGat
 	return resp, nil
 }
 
-func (r *Router) recover(req events.APIGatewayProxyRequest) {
+func (r *Router) recover(req Request) {
 	var err error
 
 	// If a panic was thrown
@@ -197,7 +203,7 @@ func (r *Route) Headers(pairs ...string) *Route {
 }
 
 // CanRoute determines if the incoming request should use this route.
-func (r *Route) canRoute(req events.APIGatewayProxyRequest) bool {
+func (r *Route) canRoute(req Request) bool {
 	// Loop through the expected headers & values
 	for expKey, expValue := range r.headers {
 		// If the header key is no present, we don't support this request

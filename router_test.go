@@ -8,7 +8,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/davidsbond/lux"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,14 +17,14 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 
 	tt := []struct {
 		Middleware     lux.MiddlewareFunc
-		Request        events.APIGatewayProxyRequest
+		Request        lux.Request
 		Handlers       map[string]lux.HandlerFunc
 		ExpectedError  string
 		ExpectedStatus int
 	}{
 		// Scenario 1: Valid request & happy path middleware
 		{
-			Request: events.APIGatewayProxyRequest{
+			Request: lux.Request{
 				HTTPMethod: "GET",
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
@@ -35,7 +34,7 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 		},
 		// Scenario 2: Valid request but middleware returns an error.
 		{
-			Request: events.APIGatewayProxyRequest{
+			Request: lux.Request{
 				HTTPMethod: "GET",
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
@@ -72,14 +71,14 @@ func TestRouter_HandlesRequests(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
-		Request        events.APIGatewayProxyRequest
+		Request        lux.Request
 		Handlers       map[string]lux.HandlerFunc
 		ExpectedError  string
 		ExpectedStatus int
 	}{
 		// Scenario 1: Valid GET request with correct headers.
 		{
-			Request: events.APIGatewayProxyRequest{
+			Request: lux.Request{
 				HTTPMethod: "GET",
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
@@ -88,7 +87,7 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		},
 		// Scenario 2: Invalid GET request with incorrect header value.
 		{
-			Request: events.APIGatewayProxyRequest{
+			Request: lux.Request{
 				HTTPMethod: "GET",
 				Headers:    map[string]string{"content-type": "application/xml"},
 			},
@@ -98,7 +97,7 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		},
 		// Scenario 3: Handler does not exist
 		{
-			Request: events.APIGatewayProxyRequest{
+			Request: lux.Request{
 				HTTPMethod: "GET",
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
@@ -108,7 +107,7 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		},
 		// Scenario 4: Invalid GET request with no headers.
 		{
-			Request: events.APIGatewayProxyRequest{
+			Request: lux.Request{
 				HTTPMethod: "GET",
 				Headers:    map[string]string{},
 			},
@@ -118,7 +117,7 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		},
 		// Scenario 5: Valid DELETE request with only a GET handler registered.
 		{
-			Request: events.APIGatewayProxyRequest{
+			Request: lux.Request{
 				HTTPMethod: "DELETE",
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
@@ -155,14 +154,14 @@ func TestRouter_Recovers(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
-		Request        events.APIGatewayProxyRequest
+		Request        lux.Request
 		Handlers       map[string]lux.HandlerFunc
 		ExpectedError  string
 		ExpectedStatus int
 	}{
 		// Scenario 1: Handler panics
 		{
-			Request: events.APIGatewayProxyRequest{
+			Request: lux.Request{
 				HTTPMethod: "GET",
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
@@ -193,24 +192,24 @@ func TestRouter_Recovers(t *testing.T) {
 	}
 }
 
-func getHandler(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
+func getHandler(lux.Request) (lux.Response, error) {
+	return lux.Response{
 		StatusCode: http.StatusOK,
 	}, nil
 }
 
-func recoverHandler(req events.APIGatewayProxyRequest, err error) {
+func recoverHandler(req lux.Request, err error) {
 	// Do nothing
 }
 
-func panicHandler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func panicHandler(req lux.Request) (lux.Response, error) {
 	panic("uh oh")
 }
 
-func errorMiddleware(req *events.APIGatewayProxyRequest) error {
+func errorMiddleware(req *lux.Request) error {
 	return errors.New("error")
 }
 
-func middleware(req *events.APIGatewayProxyRequest) error {
+func middleware(req *lux.Request) error {
 	return nil
 }
