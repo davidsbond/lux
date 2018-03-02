@@ -12,6 +12,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestLux_NewResponse(t *testing.T) {
+	tt := []struct {
+		Body          interface{}
+		Status        int
+		ExpectedError string
+	}{
+		{Body: "hello world", Status: http.StatusOK},
+		{Body: make(chan bool), Status: http.StatusOK, ExpectedError: "failed to encode response body"},
+	}
+
+	for _, tc := range tt {
+		resp, err := lux.NewResponse(tc.Body, tc.Status)
+
+		if err != nil {
+			assert.Contains(t, err.Error(), tc.ExpectedError)
+			continue
+		}
+
+		assert.Equal(t, tc.Status, resp.StatusCode)
+		assert.NotEmpty(t, resp.Body)
+	}
+}
+
 func TestRouter_UsesMiddleware(t *testing.T) {
 	t.Parallel()
 
