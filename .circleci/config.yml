@@ -12,15 +12,26 @@ jobs:
           name: Create test directory
           command: mkdir -p $TEST_RESULTS
       - run:
-          name: Get dependencies
+          name: Get project dependencies
           command: |
             dep ensure
+      - run:
+          name: Get test dependencies
+          command: |
             go get github.com/jstemmer/go-junit-report
+            go get golang.org/x/tools/cmd/cover
+            go get github.com/mattn/goveralls
             go install github.com/jstemmer/go-junit-report
+            go install github.com/mattn/goveralls
       - run:
           name: Run tests & benchmarks
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-            go test -v | tee ${TEST_RESULTS}/go-test.out
+            go test -v -bench=. | tee ${TEST_RESULTS}/go-test.out
+      - run:
+          name: Get test coverage
+          command: |  
+            go test -v -covermode=count -coverprofile=coverage.out
+            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
       - store_test_results:
           path: /temp/test-results
