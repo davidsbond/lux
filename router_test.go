@@ -13,6 +13,8 @@ import (
 )
 
 func TestLux_NewResponse(t *testing.T) {
+	t.Parallel()
+
 	tt := []struct {
 		Body          interface{}
 		Status        int
