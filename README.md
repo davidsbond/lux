@@ -45,6 +45,9 @@ Defining a handler is fairly straightforward. You can have one handler per HTTP 
 ```go
 func handler(r lux.Request) (lux.Response){
   // handle
+  resp, _ := lux.Response("hello world", http.StatusOK)
+
+  return resp
 }
 ```
 

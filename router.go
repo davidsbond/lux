@@ -1,3 +1,5 @@
+// Package lux contains types for creating an HTTP router for use in AWS lambda functions. The router supports
+// RESTful HTTP methods & contains configuration for logging, request filtering & panic recovery.
 package lux
 
 import (
