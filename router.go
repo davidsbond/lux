@@ -1,6 +1,7 @@
 package lux
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -122,8 +123,7 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 			for _, mid := range r.middleware {
 				// If one returns an error, return a 500 response containing the error
 				if err := mid(&req); err != nil {
-					resp.Body = err.Error()
-					resp.StatusCode = http.StatusInternalServerError
+					resp.Encode(err, http.StatusInternalServerError)
 
 					return resp, nil
 				}
@@ -149,8 +149,7 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 	}).Error("no handler specified to handle request")
 
 	// Otherwise, create an error response
-	resp.StatusCode = http.StatusBadRequest
-	resp.Body = errNoRoute
+	resp.Encode(errNoRoute, http.StatusBadRequest)
 
 	return resp, nil
 }
@@ -225,4 +224,21 @@ func (r *Route) canRoute(req Request) bool {
 	}
 
 	return true
+}
+
+// Encode writes the given data to the response in JSON format and sets the
+// response status code.
+func (r *Response) Encode(data interface{}, status int) error {
+	r.StatusCode = status
+
+	json, err := json.Marshal(data)
+
+	if err != nil {
+		return fmt.Errorf("failed to encode response body, %v", err)
+	}
+
+	r.Body = string(json)
+	r.Headers["Content-Type"] = "application/json"
+
+	return nil
 }
