@@ -104,8 +104,6 @@ func (r *Router) Logging(out io.Writer, format logrus.Formatter) *Router {
 // HandleRequest determines which route an incoming HTTP request should be sent down. If no route has been
 // specified for a given HTTP method, an error is returned.
 func (r *Router) HandleRequest(req Request) (Response, error) {
-	var resp Response
-
 	defer r.recover(req)
 	ts := time.Now()
 
@@ -123,9 +121,7 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 			for _, mid := range r.middleware {
 				// If one returns an error, return a 500 response containing the error
 				if err := mid(&req); err != nil {
-					resp.Encode(err, http.StatusInternalServerError)
-
-					return resp, nil
+					return NewResponse(err.Error(), http.StatusInternalServerError)
 				}
 			}
 
@@ -149,9 +145,7 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 	}).Error("no handler specified to handle request")
 
 	// Otherwise, create an error response
-	resp.Encode(errNoRoute, http.StatusBadRequest)
-
-	return resp, nil
+	return NewResponse(errNoRoute, http.StatusBadRequest)
 }
 
 func (r *Router) recover(req Request) {
@@ -226,19 +220,22 @@ func (r *Route) canRoute(req Request) bool {
 	return true
 }
 
-// Encode writes the given data to the response in JSON format and sets the
-// response status code.
-func (r *Response) Encode(data interface{}, status int) error {
-	r.StatusCode = status
-
+// NewResponse creates a new response object with a JSON encoded body and given
+// status code.
+func NewResponse(data interface{}, status int) (Response, error) {
 	json, err := json.Marshal(data)
 
 	if err != nil {
-		return fmt.Errorf("failed to encode response body, %v", err)
+		return Response{}, fmt.Errorf("failed to encode response body, %v", err)
 	}
 
-	r.Body = string(json)
-	r.Headers["Content-Type"] = "application/json"
+	resp := Response{
+		StatusCode: status,
+		Body:       string(json),
+		Headers:    make(map[string]string),
+	}
 
-	return nil
+	resp.Headers["Content-Type"] = "application/json"
+
+	return resp, nil
 }

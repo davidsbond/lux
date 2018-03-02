@@ -41,7 +41,7 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusInternalServerError,
 			Middleware:     errorMiddleware,
-			ExpectedError:  "error",
+			ExpectedError:  "\"error\"",
 		},
 	}
 

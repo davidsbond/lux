@@ -44,33 +44,25 @@ func middleware(r *lux.Request) error {
 }
 
 func getFunc(r lux.Request) lux.Response {
-	var resp lux.Response
-
-	resp.Encode("hello GET request", http.StatusOK)
+	resp, _ := lux.NewResponse("hello GET request", http.StatusOK)
 
 	return resp
 }
 
 func postFunc(r lux.Request) lux.Response {
-	var resp lux.Response
-
-	resp.Encode("hello POST request", http.StatusOK)
+	resp, _ := lux.NewResponse("hello POST request", http.StatusOK)
 
 	return resp
 }
 
 func putFunc(r lux.Request) lux.Response {
-	var resp lux.Response
-
-	resp.Encode("hello PUT request", http.StatusOK)
+	resp, _ := lux.NewResponse("hello PUT request", http.StatusOK)
 
 	return resp
 }
 
 func deleteFunc(r lux.Request) lux.Response {
-	var resp lux.Response
-
-	resp.Encode("hello DELETE request", http.StatusOK)
+	resp, _ := lux.NewResponse("hello DELETE request", http.StatusOK)
 
 	return resp
 }
