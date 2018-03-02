@@ -23,10 +23,10 @@ func main() {
 
 	// Configure your routes for different HTTP methods. You can specify headers that
 	// the request must contain to use this route.
-	router.Handler("GET", getFunc).Headers("Content-Type", "application/json")
-	router.Handler("PUT", putFunc).Headers("Content-Type", "application/json")
-	router.Handler("POST", postFunc).Headers("Content-Type", "application/json")
-	router.Handler("DELETE", deleteFunc).Headers("Content-Type", "application/json")
+	router.Handler("GET", getFunc)
+	router.Handler("PUT", putFunc)
+	router.Handler("POST", postFunc)
+	router.Handler("DELETE", deleteFunc)
 
 	router.Middleware(middleware)
 
@@ -44,29 +44,33 @@ func middleware(r *lux.Request) error {
 }
 
 func getFunc(r lux.Request) lux.Response {
-	return lux.Response{
-		StatusCode: http.StatusOK,
-		Body:       "hello GET request",
-	}
+	var resp lux.Response
+
+	resp.Encode("hello GET request", http.StatusOK)
+
+	return resp
 }
 
 func postFunc(r lux.Request) lux.Response {
-	return lux.Response{
-		StatusCode: http.StatusOK,
-		Body:       "hello POST request",
-	}
+	var resp lux.Response
+
+	resp.Encode("hello POST request", http.StatusOK)
+
+	return resp
 }
 
 func putFunc(r lux.Request) lux.Response {
-	return lux.Response{
-		StatusCode: http.StatusOK,
-		Body:       "hello PUT request",
-	}
+	var resp lux.Response
+
+	resp.Encode("hello PUT request", http.StatusOK)
+
+	return resp
 }
 
 func deleteFunc(r lux.Request) lux.Response {
-	return lux.Response{
-		StatusCode: http.StatusOK,
-		Body:       "hello DELETE request",
-	}
+	var resp lux.Response
+
+	resp.Encode("hello DELETE request", http.StatusOK)
+
+	return resp
 }
