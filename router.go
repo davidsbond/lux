@@ -39,7 +39,7 @@ type (
 	}
 
 	// The HandlerFunc type defines what a handler function should look like.
-	HandlerFunc func(*ResponseWriter, *Request)
+	HandlerFunc func(ResponseWriter, *Request)
 
 	// The RecoverFunc type defines what a panic recovery function should look like.
 	RecoverFunc func(Request, error)
@@ -53,8 +53,15 @@ type (
 	// The Headers type represents the HTTP response headers.
 	Headers map[string]string
 
-	// The ResponseWriter type allows for usage similar to traditional HTTP handlers.
-	ResponseWriter struct {
+	// The ResponseWriter type allows for interacting with the HTTP response similarly to a triaditional
+	// HTTP handler in go.
+	ResponseWriter interface {
+		Write([]byte) (int, error)
+		WriteHeader(int)
+		Headers() *Headers
+	}
+
+	responseWriter struct {
 		code    int
 		headers Headers
 		body    []byte
@@ -134,7 +141,7 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 			continue
 		}
 
-		w := &ResponseWriter{
+		w := &responseWriter{
 			code:    http.StatusOK,
 			headers: make(Headers),
 			body:    []byte{},
@@ -265,19 +272,19 @@ func NewResponse(data interface{}, status int) (Response, error) {
 	return resp, nil
 }
 
-func (w *ResponseWriter) Write(data []byte) (int, error) {
+func (w *responseWriter) Write(data []byte) (int, error) {
 	w.body = data
 
 	return len(data), nil
 }
 
 // WriteHeader writes the given HTTP status code to the HTTP response.
-func (w *ResponseWriter) WriteHeader(code int) {
+func (w *responseWriter) WriteHeader(code int) {
 	w.code = code
 }
 
 // Headers obtains the HTTP response headers for a request.
-func (w *ResponseWriter) Headers() *Headers {
+func (w *responseWriter) Headers() *Headers {
 	return &w.headers
 }
 
@@ -286,7 +293,7 @@ func (h Headers) Set(key, val string) {
 	h[key] = val
 }
 
-func (w *ResponseWriter) getResponse() Response {
+func (w *responseWriter) getResponse() Response {
 	return Response{
 		StatusCode: w.code,
 		Body:       string(w.body),

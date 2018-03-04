@@ -218,7 +218,7 @@ func TestRouter_Recovers(t *testing.T) {
 	}
 }
 
-func getHandler(w *lux.ResponseWriter, r *lux.Request) {
+func getHandler(w lux.ResponseWriter, r *lux.Request) {
 	w.Headers().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
@@ -234,15 +234,15 @@ func recoverHandler(req lux.Request, err error) {
 	// Do nothing
 }
 
-func panicHandler(w *lux.ResponseWriter, r *lux.Request) {
+func panicHandler(w lux.ResponseWriter, r *lux.Request) {
 	panic("uh oh")
 }
 
-func errorMiddleware(w *lux.ResponseWriter, r *lux.Request) {
+func errorMiddleware(w lux.ResponseWriter, r *lux.Request) {
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte("\"error\""))
 }
 
-func middleware(w *lux.ResponseWriter, r *lux.Request) {
+func middleware(w lux.ResponseWriter, r *lux.Request) {
 
 }

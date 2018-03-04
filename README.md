@@ -44,7 +44,7 @@ func main() {
 Defining a handler is fairly straightforward. You can have one handler per HTTP method. the signature for any handler function is as follows:
 
 ```go
-func handler(w *lux.ResponseWriter, r *lux.Request) {
+func handler(w lux.ResponseWriter, r *lux.Request) {
   encoder := json.NewEncoder(w)
 
   if err := encoder.Encode("hello world"); err != nil {
@@ -101,7 +101,7 @@ The second parmeter is a logrus formatter, which will output the logs as JSON. Y
 You can also provide custom middleware functions that can are executed before your handler. You can prevent execution of your handler by using `w.WriteHeader` and setting a value different from `http.StatusOK`. Middleware methods are executed in the order they are registered.
 
 ```go
-func middleware(w *lux.ResponseWriter, r *lux.Request) {
+func middleware(w lux.ResponseWriter, r *lux.Request) {
   // use an error status to prevent further execution
   w.WriteHeader(http.StatusInternalServerError)
 
