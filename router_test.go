@@ -2,7 +2,7 @@ package lux_test
 
 import (
 	"bytes"
-	"errors"
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -41,10 +41,10 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
-		Middleware     lux.MiddlewareFunc
+		Middleware     lux.HandlerFunc
 		Request        lux.Request
 		Handlers       map[string]lux.HandlerFunc
-		ExpectedError  string
+		ExpectedBody   string
 		ExpectedStatus int
 	}{
 		// Scenario 1: Valid request & happy path middleware
@@ -56,6 +56,7 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusOK,
 			Middleware:     middleware,
+			ExpectedBody:   "\"hello test\"\n",
 		},
 		// Scenario 2: Valid request but middleware returns an error.
 		{
@@ -66,7 +67,7 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusInternalServerError,
 			Middleware:     errorMiddleware,
-			ExpectedError:  "\"error\"",
+			ExpectedBody:   "\"error\"",
 		},
 	}
 
@@ -87,7 +88,7 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 		resp, _ := router.HandleRequest(tc.Request)
 
 		// THEN the status code & body should be what we expect.
-		assert.Equal(t, tc.ExpectedError, resp.Body)
+		assert.Equal(t, tc.ExpectedBody, resp.Body)
 		assert.Equal(t, tc.ExpectedStatus, resp.StatusCode)
 	}
 }
@@ -217,24 +218,31 @@ func TestRouter_Recovers(t *testing.T) {
 	}
 }
 
-func getHandler(lux.Request) lux.Response {
-	return lux.Response{
-		StatusCode: http.StatusOK,
+func getHandler(w *lux.ResponseWriter, r *lux.Request) {
+	w.Headers().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	encoder := json.NewEncoder(w)
+
+	if err := encoder.Encode("hello test"); err != nil {
+		//
 	}
+
 }
 
 func recoverHandler(req lux.Request, err error) {
 	// Do nothing
 }
 
-func panicHandler(req lux.Request) lux.Response {
+func panicHandler(w *lux.ResponseWriter, r *lux.Request) {
 	panic("uh oh")
 }
 
-func errorMiddleware(req *lux.Request) error {
-	return errors.New("error")
+func errorMiddleware(w *lux.ResponseWriter, r *lux.Request) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("\"error\""))
 }
 
-func middleware(req *lux.Request) error {
-	return nil
+func middleware(w *lux.ResponseWriter, r *lux.Request) {
+
 }

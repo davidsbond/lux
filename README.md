@@ -44,11 +44,15 @@ func main() {
 Defining a handler is fairly straightforward. You can have one handler per HTTP method. the signature for any handler function is as follows:
 
 ```go
-func handler(r lux.Request) (lux.Response){
-  // handle
-  resp, _ := lux.NewResponse("hello world", http.StatusOK)
+func handler(w *lux.ResponseWriter, r *lux.Request) {
+  encoder := json.NewEncoder(w)
 
-  return resp
+  if err := encoder.Encode("hello world"); err != nil {
+    // handle
+  }
+
+  w.Headers().Set("Content-Type", "application/json")
+  w.WriteHeader(http.StatusOK)
 }
 ```
 
