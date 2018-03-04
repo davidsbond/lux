@@ -15,8 +15,9 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-const (
-	errNoRoute = "cannot determine route for request, check your HTTP method & headers are valid"
+var (
+	errNotAllowed    = errors.New("not allowed")
+	errNotAcceptable = errors.New("not acceptable")
 )
 
 type (
@@ -33,6 +34,7 @@ type (
 	Route struct {
 		handler HandlerFunc
 		method  string
+
 		headers map[string]string
 	}
 
@@ -117,26 +119,31 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 
 	// Look through each route
 	for _, route := range r.routes {
-		// If the route supports the request, use it.
-		if route.canRoute(req) {
-			// Run any registered middleware
-			for _, mid := range r.middleware {
-				// If one returns an error, return a 500 response containing the error
-				if err := mid(&req); err != nil {
-					return NewResponse(err.Error(), http.StatusInternalServerError)
-				}
-			}
-
-			resp := route.handler(req)
-
-			r.log.WithFields(logrus.Fields{
-				"status":    resp.StatusCode,
-				"duration":  time.Since(ts).String(),
-				"requestId": req.RequestContext.RequestID,
-			}).Info("finished handling request")
-
-			return resp, nil
+		// If the route's method is correct but the request is not acceptable
+		if err := route.canRoute(req); err == errNotAcceptable {
+			return NewResponse(err.Error(), http.StatusNotAcceptable)
+		} else if err == errNotAllowed {
+			// If the method doesn't match, skip to the next route.
+			continue
 		}
+
+		// Run any registered middleware
+		for _, mid := range r.middleware {
+			// If one returns an error, return a 500 response containing the error
+			if err := mid(&req); err != nil {
+				return NewResponse(err.Error(), http.StatusInternalServerError)
+			}
+		}
+
+		resp := route.handler(req)
+
+		r.log.WithFields(logrus.Fields{
+			"status":    resp.StatusCode,
+			"duration":  time.Since(ts).String(),
+			"requestId": req.RequestContext.RequestID,
+		}).Info("finished handling request")
+
+		return resp, nil
 	}
 
 	r.log.WithFields(logrus.Fields{
@@ -147,7 +154,7 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 	}).Error("no handler specified to handle request")
 
 	// Otherwise, create an error response
-	return NewResponse(errNoRoute, http.StatusBadRequest)
+	return NewResponse(errNotAllowed.Error(), http.StatusMethodNotAllowed)
 }
 
 func (r *Router) recover(req Request) {
@@ -198,28 +205,29 @@ func (r *Route) Headers(pairs ...string) *Route {
 }
 
 // CanRoute determines if the incoming request should use this route.
-func (r *Route) canRoute(req Request) bool {
+func (r *Route) canRoute(req Request) error {
+	// If the request method does not match this route's method, we don't
+	// support this request.
+	if req.HTTPMethod != r.method {
+		return errNotAllowed
+	}
+
 	// Loop through the expected headers & values
 	for expKey, expValue := range r.headers {
 		// If the header key is no present, we don't support this request
 		if _, ok := req.Headers[expKey]; !ok {
-			return false
+			// NOT ACCEPTABLE
+			return errNotAcceptable
 		}
 
 		// If the value is not what we expect from this key, we don't support
 		// this request.
 		if value := req.Headers[expKey]; value != expValue {
-			return false
+			return errNotAcceptable
 		}
 	}
 
-	// If the request method does not match this route's method, we don't
-	// support this request.
-	if req.HTTPMethod != r.method {
-		return false
-	}
-
-	return true
+	return nil
 }
 
 // NewResponse creates a new response object with a JSON encoded body and given

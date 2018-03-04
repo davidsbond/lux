@@ -117,8 +117,8 @@ func TestRouter_HandlesRequests(t *testing.T) {
 				Headers:    map[string]string{"content-type": "application/xml"},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
-			ExpectedStatus: http.StatusBadRequest,
-			ExpectedError:  "cannot determine route for request, check your HTTP method & headers are valid",
+			ExpectedStatus: http.StatusNotAcceptable,
+			ExpectedError:  "not acceptable",
 		},
 		// Scenario 3: Handler does not exist
 		{
@@ -127,8 +127,8 @@ func TestRouter_HandlesRequests(t *testing.T) {
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
 			Handlers:       map[string]lux.HandlerFunc{},
-			ExpectedStatus: http.StatusBadRequest,
-			ExpectedError:  "cannot determine route for request, check your HTTP method & headers are valid",
+			ExpectedStatus: http.StatusMethodNotAllowed,
+			ExpectedError:  "not allowed",
 		},
 		// Scenario 4: Invalid GET request with no headers.
 		{
@@ -137,8 +137,8 @@ func TestRouter_HandlesRequests(t *testing.T) {
 				Headers:    map[string]string{},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
-			ExpectedStatus: http.StatusBadRequest,
-			ExpectedError:  "cannot determine route for request, check your HTTP method & headers are valid",
+			ExpectedStatus: http.StatusNotAcceptable,
+			ExpectedError:  "not acceptable",
 		},
 		// Scenario 5: Valid DELETE request with only a GET handler registered.
 		{
@@ -147,8 +147,8 @@ func TestRouter_HandlesRequests(t *testing.T) {
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
-			ExpectedStatus: http.StatusBadRequest,
-			ExpectedError:  "cannot determine route for request, check your HTTP method & headers are valid",
+			ExpectedStatus: http.StatusMethodNotAllowed,
+			ExpectedError:  "not allowed",
 		},
 	}
 
