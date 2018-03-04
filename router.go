@@ -25,7 +25,7 @@ type (
 	// handlers.
 	Router struct {
 		routes     []*Route
-		middleware []MiddlewareFunc
+		middleware []HandlerFunc
 		recovery   RecoverFunc
 		log        *logrus.Logger
 	}
@@ -39,10 +39,7 @@ type (
 	}
 
 	// The HandlerFunc type defines what a handler function should look like.
-	HandlerFunc func(Request) Response
-
-	// The MiddlewareFunc type defines what a middleware function should look like.
-	MiddlewareFunc func(*Request) error
+	HandlerFunc func(*ResponseWriter, *Request)
 
 	// The RecoverFunc type defines what a panic recovery function should look like.
 	RecoverFunc func(Request, error)
@@ -52,13 +49,23 @@ type (
 
 	// The Response type represents an outgoing HTTP response.
 	Response events.APIGatewayProxyResponse
+
+	// The Headers type represents the HTTP response headers.
+	Headers map[string]string
+
+	// The ResponseWriter type allows for usage similar to traditional HTTP handlers.
+	ResponseWriter struct {
+		code    int
+		headers Headers
+		body    []byte
+	}
 )
 
 // NewRouter creates a new lambda router.
 func NewRouter() *Router {
 	return &Router{
 		routes:     []*Route{},
-		middleware: []MiddlewareFunc{},
+		middleware: []HandlerFunc{},
 		log:        logrus.New(),
 	}
 }
@@ -83,7 +90,7 @@ func (r *Router) Handler(method string, fn HandlerFunc) *Route {
 // Middleware adds a middleware function to the router. These methods will be called
 // prior to the route handler and allow you to modify the inbound request before
 // processing it.
-func (r *Router) Middleware(fn MiddlewareFunc) *Router {
+func (r *Router) Middleware(fn HandlerFunc) *Router {
 	r.middleware = append(r.middleware, fn)
 
 	return r
@@ -127,15 +134,23 @@ func (r *Router) HandleRequest(req Request) (Response, error) {
 			continue
 		}
 
+		w := &ResponseWriter{
+			code:    http.StatusOK,
+			headers: make(Headers),
+			body:    []byte{},
+		}
+
 		// Run any registered middleware
 		for _, mid := range r.middleware {
-			// If one returns an error, return a 500 response containing the error
-			if err := mid(&req); err != nil {
-				return NewResponse(err.Error(), http.StatusInternalServerError)
+			// Return a response if the middleware warrants it
+			if mid(w, &req); w.code != http.StatusOK {
+				return w.getResponse(), nil
 			}
 		}
 
-		resp := route.handler(req)
+		route.handler(w, &req)
+
+		resp := w.getResponse()
 
 		r.log.WithFields(logrus.Fields{
 			"status":    resp.StatusCode,
@@ -248,4 +263,33 @@ func NewResponse(data interface{}, status int) (Response, error) {
 	resp.Headers["Content-Type"] = "application/json"
 
 	return resp, nil
+}
+
+func (w *ResponseWriter) Write(data []byte) (int, error) {
+	w.body = data
+
+	return len(data), nil
+}
+
+// WriteHeader writes the given HTTP status code to the HTTP response.
+func (w *ResponseWriter) WriteHeader(code int) {
+	w.code = code
+}
+
+// Headers obtains the HTTP response headers for a request.
+func (w *ResponseWriter) Headers() *Headers {
+	return &w.headers
+}
+
+// Set creates a new header with the given key and value.
+func (h Headers) Set(key, val string) {
+	h[key] = val
+}
+
+func (w *ResponseWriter) getResponse() Response {
+	return Response{
+		StatusCode: w.code,
+		Body:       string(w.body),
+		Headers:    w.headers,
+	}
 }

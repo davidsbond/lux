@@ -44,11 +44,15 @@ func main() {
 Defining a handler is fairly straightforward. You can have one handler per HTTP method. the signature for any handler function is as follows:
 
 ```go
-func handler(r lux.Request) (lux.Response){
-  // handle
-  resp, _ := lux.NewResponse("hello world", http.StatusOK)
+func handler(w *lux.ResponseWriter, r *lux.Request) {
+  encoder := json.NewEncoder(w)
 
-  return resp
+  if err := encoder.Encode("hello world"); err != nil {
+    // handle
+  }
+
+  w.Headers().Set("Content-Type", "application/json")
+  w.WriteHeader(http.StatusOK)
 }
 ```
 
@@ -94,11 +98,16 @@ The second parmeter is a logrus formatter, which will output the logs as JSON. Y
 
 ## middleware
 
-You can also provide custom middleware functions that can modify a request before it reaches your handler. The method signature for a middleware function is as follows:
+You can also provide custom middleware functions that can are executed before your handler. You can prevent execution of your handler by using `w.WriteHeader` and setting a value different from `http.StatusOK`. Middleware methods are executed in the order they are registered.
 
 ```go
-func middleware(r *lux.Request) error {
-  // do something to the request
+func middleware(w *lux.ResponseWriter, r *lux.Request) {
+  // use an error status to prevent further execution
+  w.WriteHeader(http.StatusInternalServerError)
+
+  // changes you make to the request object are propagated to
+  // your handlers
+  r.Body = "you've changed"
 }
 ```
 
@@ -107,5 +116,3 @@ You can register the middleware like this:
 ```go
 router.Middleware(middleware)
 ```
-
-If the middleware method returns an error, the generated response will be a `500`. Middleware methods are executed in the order they are registered.
