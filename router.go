@@ -210,19 +210,7 @@ func (r *Router) recover(req Request) {
 // Headers allows you to specify headers a request should have in order to
 // use this route.
 func (r *Route) Headers(pairs ...string) *Route {
-	// Loop through the headers
-	for i := 0; i < len(pairs); i += 2 {
-		// If we have an odd number of pairs, skip the last one.
-		if len(pairs) < i+1 {
-			break
-		}
-
-		key := pairs[i]
-		value := pairs[i+1]
-
-		// Register the required header
-		r.headers[key] = value
-	}
+	r.headers = mapPairs(pairs...)
 
 	return r
 }
@@ -230,19 +218,7 @@ func (r *Route) Headers(pairs ...string) *Route {
 // Queries allows you to specify query parameters and values a request should have
 // in order to use this route.
 func (r *Route) Queries(pairs ...string) *Route {
-	// Loop through the headers
-	for i := 0; i < len(pairs); i += 2 {
-		// If we have an odd number of pairs, skip the last one.
-		if len(pairs) < i+1 {
-			break
-		}
-
-		key := pairs[i]
-		value := pairs[i+1]
-
-		// Register the required query
-		r.queries[key] = value
-	}
+	r.queries = mapPairs(pairs...)
 
 	return r
 }
@@ -255,20 +231,8 @@ func (r *Route) canRoute(req Request) error {
 		return errNotAllowed
 	}
 
-	// Loop through the expected headers & values
-	for expKey, expValue := range r.headers {
-		// If the header key is not present, we don't support this request
-		if value, ok := req.Headers[expKey]; !ok || (value != expValue && expValue != "*") {
-			return errNotAcceptable
-		}
-	}
-
-	// Loop through the expected queries & values
-	for expKey, expValue := range r.queries {
-		// If the query key is not present, we don't support this request
-		if value, ok := req.QueryStringParameters[expKey]; !ok || value != expValue {
-			return errNotAcceptable
-		}
+	if !matchMap(r.headers, req.Headers) || !matchMap(r.queries, req.QueryStringParameters) {
+		return errNotAcceptable
 	}
 
 	return nil
@@ -321,4 +285,33 @@ func (w *responseWriter) getResponse() Response {
 		Body:       string(w.body),
 		Headers:    w.headers,
 	}
+}
+
+func matchMap(m1, m2 map[string]string) bool {
+	for expKey, expVal := range m1 {
+		if value, ok := m2[expKey]; !ok || (value != expVal && expVal != "*") {
+			return false
+		}
+	}
+
+	return true
+}
+
+func mapPairs(pairs ...string) map[string]string {
+	out := make(map[string]string)
+
+	for i := 0; i < len(pairs); i += 2 {
+		// If we have an odd number of pairs, skip the last one.
+		if len(pairs) < i+1 {
+			break
+		}
+
+		key := pairs[i]
+		value := pairs[i+1]
+
+		// Register the required header
+		out[key] = value
+	}
+
+	return out
 }
