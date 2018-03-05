@@ -27,12 +27,12 @@ func main() {
   // Register some middleware
   router.Middleware(middlewareFunc)
 
-  // Configure your routes for different HTTP methods. You can specify headers that
+  // Configure your routes for different HTTP methods. You can specify headers/params that
   // the request must contain to use this route.
-  router.Handler("GET", getFunc).Headers("Content-Type", "application/json")
+  router.Handler("GET", getFunc).Queries("key", "value")
   router.Handler("PUT", putFunc).Headers("Content-Type", "application/json")
   router.Handler("POST", postFunc).Headers("Content-Type", "application/json")
-  router.Handler("DELETE", deleteFunc).Headers("Content-Type", "application/json")
+  router.Handler("DELETE", deleteFunc).Queries("key", "value")
 
   // Start the lambda.
   lambda.Start(router.HandleRequest)
@@ -51,7 +51,7 @@ func handler(w lux.ResponseWriter, r *lux.Request) {
     // handle
   }
 
-  w.Headers().Set("Content-Type", "application/json")
+  w.Header().Set("Content-Type", "application/json")
   w.WriteHeader(http.StatusOK)
 }
 ```
@@ -65,10 +65,18 @@ router.Handler("GET", handler)
 Whenever a GET request is made to the lambda function, the handler will be called. You can also specify which headers must be present for a request to reach your handler. For example, if we only want JSON requests, we can specify:
 
 ```go
+// Require header with value
 router.Handler("GET", handler).Headers("Content-Type", "application/json")
+
+// Require header regardless of value
+router.Handler("GET", handler).Headers("Content-Type", "*")
 ```
 
-In the scenario where a request is made with invalid headers, a `400` response is returned.
+Or if we want to specify HTTP query parameters
+
+```go
+router.Handler("GET", handler).Queries("key", "value")
+```
 
 ## recovery
 

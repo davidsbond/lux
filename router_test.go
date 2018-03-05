@@ -25,13 +25,17 @@ func TestLux_NewResponse(t *testing.T) {
 	}
 
 	for _, tc := range tt {
+		// GIVEN that we have a valid body and status
+		// WHEN we create a new response object
 		resp, err := lux.NewResponse(tc.Body, tc.Status)
 
+		// THEN any errors should be what we expect
 		if err != nil {
 			assert.Contains(t, err.Error(), tc.ExpectedError)
 			continue
 		}
 
+		// AND the status and body should be what we expect.
 		assert.Equal(t, tc.Status, resp.StatusCode)
 		assert.NotEmpty(t, resp.Body)
 	}
@@ -105,8 +109,9 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 1: Valid GET request with correct headers.
 		{
 			Request: lux.Request{
-				HTTPMethod: "GET",
-				Headers:    map[string]string{"content-type": "application/json"},
+				HTTPMethod:            "GET",
+				Headers:               map[string]string{"content-type": "application/json"},
+				QueryStringParameters: map[string]string{"key": "value"},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusOK,
@@ -114,8 +119,9 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 2: Invalid GET request with incorrect header value.
 		{
 			Request: lux.Request{
-				HTTPMethod: "GET",
-				Headers:    map[string]string{"content-type": "application/xml"},
+				HTTPMethod:            "GET",
+				Headers:               map[string]string{"content-type": "application/xml"},
+				QueryStringParameters: map[string]string{"key": "value"},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusNotAcceptable,
@@ -124,8 +130,9 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 3: Handler does not exist
 		{
 			Request: lux.Request{
-				HTTPMethod: "GET",
-				Headers:    map[string]string{"content-type": "application/json"},
+				HTTPMethod:            "GET",
+				Headers:               map[string]string{"content-type": "application/json"},
+				QueryStringParameters: map[string]string{"key": "value"},
 			},
 			Handlers:       map[string]lux.HandlerFunc{},
 			ExpectedStatus: http.StatusMethodNotAllowed,
@@ -134,8 +141,9 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 4: Invalid GET request with no headers.
 		{
 			Request: lux.Request{
-				HTTPMethod: "GET",
-				Headers:    map[string]string{},
+				HTTPMethod:            "GET",
+				Headers:               map[string]string{},
+				QueryStringParameters: map[string]string{"key": "value"},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusNotAcceptable,
@@ -144,12 +152,24 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 5: Valid DELETE request with only a GET handler registered.
 		{
 			Request: lux.Request{
-				HTTPMethod: "DELETE",
-				Headers:    map[string]string{"content-type": "application/json"},
+				HTTPMethod:            "DELETE",
+				Headers:               map[string]string{"content-type": "application/json"},
+				QueryStringParameters: map[string]string{"key": "value"},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusMethodNotAllowed,
 			ExpectedError:  "not allowed",
+		},
+		// Scenario 6: Valid GET request with missing required query params.
+		{
+			Request: lux.Request{
+				HTTPMethod:            "GET",
+				Headers:               map[string]string{"content-type": "application/json"},
+				QueryStringParameters: map[string]string{},
+			},
+			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
+			ExpectedStatus: http.StatusNotAcceptable,
+			ExpectedError:  "not acceptable",
 		},
 	}
 
@@ -160,7 +180,9 @@ func TestRouter_HandlesRequests(t *testing.T) {
 
 		// AND that router has handlers registered
 		for method, handler := range tc.Handlers {
-			router.Handler(method, handler).Headers("content-type", "application/json")
+			router.Handler(method, handler).
+				Headers("content-type", "application/json").
+				Queries("key", "value")
 		}
 
 		// WHEN we perform the request
@@ -219,7 +241,7 @@ func TestRouter_Recovers(t *testing.T) {
 }
 
 func getHandler(w lux.ResponseWriter, r *lux.Request) {
-	w.Headers().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	encoder := json.NewEncoder(w)

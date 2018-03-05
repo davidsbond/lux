@@ -34,8 +34,8 @@ type (
 	Route struct {
 		handler HandlerFunc
 		method  string
-
 		headers map[string]string
+		queries map[string]string
 	}
 
 	// The HandlerFunc type defines what a handler function should look like.
@@ -58,7 +58,7 @@ type (
 	ResponseWriter interface {
 		Write([]byte) (int, error)
 		WriteHeader(int)
-		Headers() *Headers
+		Header() *Headers
 	}
 
 	responseWriter struct {
@@ -83,6 +83,7 @@ func (r *Router) Handler(method string, fn HandlerFunc) *Route {
 		handler: fn,
 		method:  method,
 		headers: make(map[string]string),
+		queries: make(map[string]string),
 	}
 
 	r.routes = append(r.routes, route)
@@ -209,19 +210,15 @@ func (r *Router) recover(req Request) {
 // Headers allows you to specify headers a request should have in order to
 // use this route.
 func (r *Route) Headers(pairs ...string) *Route {
-	// Loop through the headers
-	for i := 0; i < len(pairs); i += 2 {
-		// If we have an odd number of pairs, skip the last one.
-		if len(pairs) < i+1 {
-			break
-		}
+	r.headers = mapPairs(pairs...)
 
-		key := pairs[i]
-		value := pairs[i+1]
+	return r
+}
 
-		// Register the required header
-		r.headers[key] = value
-	}
+// Queries allows you to specify query parameters and values a request should have
+// in order to use this route.
+func (r *Route) Queries(pairs ...string) *Route {
+	r.queries = mapPairs(pairs...)
 
 	return r
 }
@@ -234,19 +231,8 @@ func (r *Route) canRoute(req Request) error {
 		return errNotAllowed
 	}
 
-	// Loop through the expected headers & values
-	for expKey, expValue := range r.headers {
-		// If the header key is no present, we don't support this request
-		if _, ok := req.Headers[expKey]; !ok {
-			// NOT ACCEPTABLE
-			return errNotAcceptable
-		}
-
-		// If the value is not what we expect from this key, we don't support
-		// this request.
-		if value := req.Headers[expKey]; value != expValue {
-			return errNotAcceptable
-		}
+	if !matchMap(r.headers, req.Headers) || !matchMap(r.queries, req.QueryStringParameters) {
+		return errNotAcceptable
 	}
 
 	return nil
@@ -284,7 +270,7 @@ func (w *responseWriter) WriteHeader(code int) {
 }
 
 // Headers obtains the HTTP response headers for a request.
-func (w *responseWriter) Headers() *Headers {
+func (w *responseWriter) Header() *Headers {
 	return &w.headers
 }
 
@@ -299,4 +285,33 @@ func (w *responseWriter) getResponse() Response {
 		Body:       string(w.body),
 		Headers:    w.headers,
 	}
+}
+
+func matchMap(m1, m2 map[string]string) bool {
+	for expKey, expVal := range m1 {
+		if value, ok := m2[expKey]; !ok || (value != expVal && expVal != "*") {
+			return false
+		}
+	}
+
+	return true
+}
+
+func mapPairs(pairs ...string) map[string]string {
+	out := make(map[string]string)
+
+	for i := 0; i < len(pairs); i += 2 {
+		// If we have an odd number of pairs, skip the last one.
+		if len(pairs) < i+1 {
+			break
+		}
+
+		key := pairs[i]
+		value := pairs[i+1]
+
+		// Register the required header
+		out[key] = value
+	}
+
+	return out
 }
