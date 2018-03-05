@@ -258,7 +258,7 @@ func (r *Route) canRoute(req Request) error {
 	// Loop through the expected headers & values
 	for expKey, expValue := range r.headers {
 		// If the header key is not present, we don't support this request
-		if value, ok := req.Headers[expKey]; !ok || (value != expValue && value != "*") {
+		if value, ok := req.Headers[expKey]; !ok || (value != expValue && expValue != "*") {
 			return errNotAcceptable
 		}
 	}
@@ -266,7 +266,7 @@ func (r *Route) canRoute(req Request) error {
 	// Loop through the expected queries & values
 	for expKey, expValue := range r.queries {
 		// If the query key is not present, we don't support this request
-		if value, ok := req.QueryStringParameters[expKey]; !ok || (value != expValue && value != "*") {
+		if value, ok := req.QueryStringParameters[expKey]; !ok || value != expValue {
 			return errNotAcceptable
 		}
 	}
