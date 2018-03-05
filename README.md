@@ -65,7 +65,11 @@ router.Handler("GET", handler)
 Whenever a GET request is made to the lambda function, the handler will be called. You can also specify which headers must be present for a request to reach your handler. For example, if we only want JSON requests, we can specify:
 
 ```go
+// Require header with value
 router.Handler("GET", handler).Headers("Content-Type", "application/json")
+
+// Require header regardless of value
+router.Handler("GET", handler).Headers("Content-Type", "*")
 ```
 
 Or if we want to specify HTTP query parameters
