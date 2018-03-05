@@ -34,8 +34,8 @@ type (
 	Route struct {
 		handler HandlerFunc
 		method  string
-
 		headers map[string]string
+		queries map[string]string
 	}
 
 	// The HandlerFunc type defines what a handler function should look like.
@@ -58,7 +58,7 @@ type (
 	ResponseWriter interface {
 		Write([]byte) (int, error)
 		WriteHeader(int)
-		Headers() *Headers
+		Header() *Headers
 	}
 
 	responseWriter struct {
@@ -83,6 +83,7 @@ func (r *Router) Handler(method string, fn HandlerFunc) *Route {
 		handler: fn,
 		method:  method,
 		headers: make(map[string]string),
+		queries: make(map[string]string),
 	}
 
 	r.routes = append(r.routes, route)
@@ -226,6 +227,26 @@ func (r *Route) Headers(pairs ...string) *Route {
 	return r
 }
 
+// Queries allows you to specify query parameters and values a request should have
+// in order to use this route.
+func (r *Route) Queries(pairs ...string) *Route {
+	// Loop through the headers
+	for i := 0; i < len(pairs); i += 2 {
+		// If we have an odd number of pairs, skip the last one.
+		if len(pairs) < i+1 {
+			break
+		}
+
+		key := pairs[i]
+		value := pairs[i+1]
+
+		// Register the required query
+		r.queries[key] = value
+	}
+
+	return r
+}
+
 // CanRoute determines if the incoming request should use this route.
 func (r *Route) canRoute(req Request) error {
 	// If the request method does not match this route's method, we don't
@@ -236,15 +257,16 @@ func (r *Route) canRoute(req Request) error {
 
 	// Loop through the expected headers & values
 	for expKey, expValue := range r.headers {
-		// If the header key is no present, we don't support this request
-		if _, ok := req.Headers[expKey]; !ok {
-			// NOT ACCEPTABLE
+		// If the header key is not present, we don't support this request
+		if value, ok := req.Headers[expKey]; !ok || (value != expValue && value != "*") {
 			return errNotAcceptable
 		}
+	}
 
-		// If the value is not what we expect from this key, we don't support
-		// this request.
-		if value := req.Headers[expKey]; value != expValue {
+	// Loop through the expected queries & values
+	for expKey, expValue := range r.queries {
+		// If the query key is not present, we don't support this request
+		if value, ok := req.QueryStringParameters[expKey]; !ok || (value != expValue && value != "*") {
 			return errNotAcceptable
 		}
 	}
@@ -284,7 +306,7 @@ func (w *responseWriter) WriteHeader(code int) {
 }
 
 // Headers obtains the HTTP response headers for a request.
-func (w *responseWriter) Headers() *Headers {
+func (w *responseWriter) Header() *Headers {
 	return &w.headers
 }
 
