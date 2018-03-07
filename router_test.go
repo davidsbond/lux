@@ -12,35 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLux_NewResponse(t *testing.T) {
-	t.Parallel()
-
-	tt := []struct {
-		Body          interface{}
-		Status        int
-		ExpectedError string
-	}{
-		{Body: "hello world", Status: http.StatusOK},
-		{Body: make(chan bool), Status: http.StatusOK, ExpectedError: "failed to encode response body"},
-	}
-
-	for _, tc := range tt {
-		// GIVEN that we have a valid body and status
-		// WHEN we create a new response object
-		resp, err := lux.NewResponse(tc.Body, tc.Status)
-
-		// THEN any errors should be what we expect
-		if err != nil {
-			assert.Contains(t, err.Error(), tc.ExpectedError)
-			continue
-		}
-
-		// AND the status and body should be what we expect.
-		assert.Equal(t, tc.Status, resp.StatusCode)
-		assert.NotEmpty(t, resp.Body)
-	}
-}
-
 func TestRouter_UsesMiddleware(t *testing.T) {
 	t.Parallel()
 
@@ -89,7 +60,7 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 		router.Middleware(tc.Middleware)
 
 		// WHEN we perform a request
-		resp, _ := router.HandleRequest(tc.Request)
+		resp, _ := router.ServeHTTP(tc.Request)
 
 		// THEN the status code & body should be what we expect.
 		assert.Equal(t, tc.ExpectedBody, resp.Body)
@@ -186,7 +157,7 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		}
 
 		// WHEN we perform the request
-		resp, err := router.HandleRequest(tc.Request)
+		resp, err := router.ServeHTTP(tc.Request)
 
 		// THEN any errors should be what we expect
 		if err != nil {
@@ -213,7 +184,9 @@ func TestRouter_Recovers(t *testing.T) {
 				HTTPMethod: "GET",
 				Headers:    map[string]string{"content-type": "application/json"},
 			},
-			Handlers: map[string]lux.HandlerFunc{"GET": panicHandler},
+			Handlers:       map[string]lux.HandlerFunc{"GET": panicHandler},
+			ExpectedStatus: http.StatusInternalServerError,
+			ExpectedError:  "failed to obtain response",
 		},
 	}
 
@@ -228,15 +201,11 @@ func TestRouter_Recovers(t *testing.T) {
 		}
 
 		// WHEN we perform the request that will panic
-		resp, err := router.HandleRequest(tc.Request)
-
-		// THEN any errors should be what we expect
-		if err != nil {
-			assert.Equal(t, tc.ExpectedError, err.Error())
-		}
+		resp, _ := router.ServeHTTP(tc.Request)
 
 		// AND the status code should be what we expect.
 		assert.Equal(t, tc.ExpectedStatus, resp.StatusCode)
+		assert.Equal(t, tc.ExpectedError, resp.Body)
 	}
 }
 
@@ -245,14 +214,11 @@ func getHandler(w lux.ResponseWriter, r *lux.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	encoder := json.NewEncoder(w)
-
-	if err := encoder.Encode("hello test"); err != nil {
-		//
-	}
+	encoder.Encode("hello test")
 
 }
 
-func recoverHandler(req lux.Request, err error) {
+func recoverHandler(info lux.PanicInfo) {
 	// Do nothing
 }
 
