@@ -139,15 +139,14 @@ func (r *Router) Logging(out io.Writer, format logrus.Formatter) *Router {
 // the request matches a registered route then the specified handler will be
 // executed after any registered middleware.
 //
-// * If a handler cannot be found matching the HTTP method, a 405 response
-//   will be returned to the client.
+// If a handler cannot be found matching the HTTP method, a 405 response
+// will be returned to the client.
 //
-// * If you have specified query or header filters to your route, a request
-//   that matches the HTTP method but lacks the required parameters/headers
-//   will result in a 406 response.
+// If you have specified query or header filters to your route, a request
+// that matches the HTTP method but lacks the required parameters/headers
+// will result in a 406 response.
 //
-// * A panic will result in a 500 response.
-//
+// A panic will result in a 500 response.
 func (r *Router) ServeHTTP(req Request) (Response, error) {
 	ts := time.Now()
 
