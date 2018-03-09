@@ -29,10 +29,10 @@ func main() {
 
   // Configure your routes for different HTTP methods. You can specify headers/params that
   // the request must contain to use this route.
-  router.Handler("GET", getFunc).Queries("key", "value")
+  router.Handler("GET", getFunc).Queries("key", "*")
   router.Handler("PUT", putFunc).Headers("Content-Type", "application/json")
   router.Handler("POST", postFunc).Headers("Content-Type", "application/json")
-  router.Handler("DELETE", deleteFunc).Queries("key", "value")
+  router.Handler("DELETE", deleteFunc).Queries("key", "*")
 
   // Start the lambda.
   lambda.Start(router.ServeHTTP)
@@ -41,7 +41,7 @@ func main() {
 
 ## handlers
 
-Defining a handler is fairly straightforward. You can have one handler per HTTP method. This package attempts to make creating HTTP handlers as similar to the standard library as possible, so provides a signature mirroring a standard HTTP handler. The signature for any handler function is as follows:
+Defining a handler is fairly straightforward. You can have multiple handlers per HTTP method. This package attempts to make creating HTTP handlers as similar to the standard library as possible, so provides a signature mirroring a standard HTTP handler. The signature for any handler function is as follows:
 
 ```go
 func handler(w lux.ResponseWriter, r *lux.Request) {
@@ -80,6 +80,10 @@ router.Handler("GET", handler).Queries("key", "value")
 
 // Require query parameter regardless of value
 router.Handler("GET", handler).Queries("key", "*")
+
+// You can have multiple routes for a single HTTP method that expect different query parameters
+router.Handler("GET", handler1).Queries("id", "*")
+router.Handler("GET", handler2).Queries("name", "*")
 ```
 
 ## recovery
@@ -88,7 +92,7 @@ In the event a process in your handler causes a panic, the router will automatic
 
 ```go
 func onPanic(info lux.PanicInfo) {
-  // handle
+  // do something with the panic information
 }
 ```
 
@@ -110,7 +114,7 @@ The second parmeter is a logrus formatter, which will output the logs as JSON. Y
 
 ## middleware
 
-You can also provide custom middleware functions that can are executed before your handler. You can prevent execution of your handler by using `w.WriteHeader` and setting a value different from `http.StatusOK`. Middleware methods are executed in the order they are registered.
+You can also provide custom middleware functions that can are executed before your handler. You can prevent execution of your handler by using `w.WriteHeader` method. Any modifications to the response writer that occur during execution of middleware functions will create a response and prevent execution of the handler. Middleware methods are executed in the order they are registered.
 
 ```go
 func middleware(w lux.ResponseWriter, r *lux.Request) {

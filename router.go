@@ -184,6 +184,8 @@ func (r *Router) ServeHTTP(req Request) (Response, error) {
 	return resp, nil
 }
 
+// performRequest executes any registered middleware before attempting to use the route's
+// handler & will recover from any panics.
 func (r *Router) performRequest(route *Route, w *responseWriter, req Request) {
 	defer r.recover(req)
 
@@ -216,7 +218,7 @@ func (r *Route) Queries(pairs ...string) *Route {
 	return r
 }
 
-// NewResponse creates a new response object with a JSON encoded body and given
+// newResponse creates a new response object with a JSON encoded body and given
 // status code.
 func newResponse(data interface{}, status int) (Response, error) {
 	json, err := json.Marshal(data)
@@ -236,8 +238,9 @@ func newResponse(data interface{}, status int) (Response, error) {
 	return resp, nil
 }
 
+// Write appends the given data to the response body.
 func (w *responseWriter) Write(data []byte) (int, error) {
-	w.body = data
+	w.body = append(w.body, data...)
 
 	return len(data), nil
 }
@@ -257,23 +260,49 @@ func (h Headers) Set(key, val string) {
 	h[key] = val
 }
 
+// findRoute attempts to locate a route that can handle a given request and
+// returns errors specifying if no route is found, or the provided headers &
+// parameters for that route are invalid.
 func (r *Router) findRoute(req Request) (*Route, error) {
+	var out *Route
+	var checkRoutes []*Route
+	var err error
+
 	// Look through each route
 	for _, route := range r.routes {
-		// If the route's method is correct but the request is not acceptable
-		if err := route.canRoute(req); err == errNotAcceptable {
-			return nil, err
-		} else if err == errNotAllowed {
-			// If the method doesn't match, skip to the next route.
+		// If the route method matches, add it to the slice.
+		if route.method == req.HTTPMethod {
+			checkRoutes = append(checkRoutes, route)
+		}
+	}
+
+	// If we got no routes to check, return a 405
+	if len(checkRoutes) == 0 {
+		return nil, errNotAllowed
+	}
+
+	// Look at each route with a matching method
+	for _, route := range checkRoutes {
+		err = route.canRoute(req)
+
+		// If we cannot use this route, check the next one.
+		if err != nil {
 			continue
 		}
 
-		return route, nil
+		// Otherwise, we found our route
+		out = route
+		err = nil
+		break
 	}
 
-	return nil, errNotAllowed
+	// If we found a route, 'out' will be non-nil.
+	return out, err
 }
 
+// recover handles panics that may occur during execution of the lambda function. In a situation
+// where a panic does occur, the router will recover and execute a custom panic handler if it has
+// been provided.
 func (r *Router) recover(req Request) {
 	var err error
 
@@ -309,13 +338,9 @@ func (r *Router) recover(req Request) {
 	}
 }
 
+// canRoute determines if a route can handle a given request based on the route's expected headers
+// and parameters.
 func (r *Route) canRoute(req Request) error {
-	// If the request method does not match this route's method, we don't
-	// support this request.
-	if req.HTTPMethod != r.method {
-		return errNotAllowed
-	}
-
 	if !matchMap(r.headers, req.Headers) || !matchMap(r.queries, req.QueryStringParameters) {
 		return errNotAcceptable
 	}
@@ -323,6 +348,8 @@ func (r *Route) canRoute(req Request) error {
 	return nil
 }
 
+// getResponse takes all data written to the response writer and converts it into a Response type
+// that can be returned to the client.
 func (w *responseWriter) getResponse() Response {
 	if w.code == 0 {
 		return Response{
@@ -338,6 +365,8 @@ func (w *responseWriter) getResponse() Response {
 	}
 }
 
+// matchMap determines whether or not the keys/values from the first map
+// match the keys/values in the second.
 func matchMap(m1, m2 map[string]string) bool {
 	// The first map contains the values we expect to be in the second
 	// map.
@@ -351,6 +380,8 @@ func matchMap(m1, m2 map[string]string) bool {
 	return true
 }
 
+// mapPairs converts a given number of string arguments to a map. If an odd number
+// of arguments are specified, the last one will be given a wildcard (*) value.
 func mapPairs(pairs ...string) map[string]string {
 	out := make(map[string]string)
 
