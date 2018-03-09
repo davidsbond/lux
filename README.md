@@ -7,7 +7,7 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/davidsbond/lux/release/LICENSE)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdavidsbond%2Flux.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdavidsbond%2Flux?ref=badge_shield)
 
-A simple package for creating RESTful AWS Lambda functions in Go.
+A simple package for creating RESTful AWS Lambda functions in Go. Inspired by packages like [mux](https://github.com/gorilla/mux) & [negroni](https://github.com/urfave/negroni)
 
 ## usage
 
