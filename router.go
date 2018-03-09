@@ -258,20 +258,40 @@ func (h Headers) Set(key, val string) {
 }
 
 func (r *Router) findRoute(req Request) (*Route, error) {
+	var out *Route
+	var checkRoutes []*Route
+	var err error
+
 	// Look through each route
 	for _, route := range r.routes {
-		// If the route's method is correct but the request is not acceptable
-		if err := route.canRoute(req); err == errNotAcceptable {
-			return nil, err
-		} else if err == errNotAllowed {
-			// If the method doesn't match, skip to the next route.
+		// If the route method matches, add it to the slice.
+		if route.method == req.HTTPMethod {
+			checkRoutes = append(checkRoutes, route)
+		}
+	}
+
+	// If we got no routes to check, return a 404
+	if len(checkRoutes) == 0 {
+		return nil, errNotAllowed
+	}
+
+	// Look at each route with a matching method
+	for _, route := range checkRoutes {
+		err = route.canRoute(req)
+
+		// If we cannot use this route, check the next one.
+		if err != nil {
 			continue
 		}
 
-		return route, nil
+		// Otherwise, we found our route
+		out = route
+		err = nil
+		break
 	}
 
-	return nil, errNotAllowed
+	// If we found a route, 'out' will be non-nil.
+	return out, err
 }
 
 func (r *Router) recover(req Request) {
@@ -310,12 +330,6 @@ func (r *Router) recover(req Request) {
 }
 
 func (r *Route) canRoute(req Request) error {
-	// If the request method does not match this route's method, we don't
-	// support this request.
-	if req.HTTPMethod != r.method {
-		return errNotAllowed
-	}
-
 	if !matchMap(r.headers, req.Headers) || !matchMap(r.queries, req.QueryStringParameters) {
 		return errNotAcceptable
 	}
