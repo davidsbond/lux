@@ -237,7 +237,7 @@ func newResponse(data interface{}, status int) (Response, error) {
 }
 
 func (w *responseWriter) Write(data []byte) (int, error) {
-	w.body = data
+	w.body = append(w.body, data...)
 
 	return len(data), nil
 }
