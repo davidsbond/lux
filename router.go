@@ -33,10 +33,11 @@ type (
 
 	// The Route type defines a route that can be used by the router.
 	Route struct {
-		handler HandlerFunc
-		method  string
-		headers map[string]string
-		queries map[string]string
+		handler    HandlerFunc
+		method     string
+		headers    map[string]string
+		queries    map[string]string
+		middleware []HandlerFunc
 	}
 
 	// The ResponseWriter type allows for interacting with the HTTP response similarly to a triaditional
@@ -89,10 +90,11 @@ func NewRouter() *Router {
 // Handler adds a given handler to the router.
 func (r *Router) Handler(method string, fn HandlerFunc) *Route {
 	route := &Route{
-		handler: fn,
-		method:  method,
-		headers: make(map[string]string),
-		queries: make(map[string]string),
+		handler:    fn,
+		method:     method,
+		headers:    make(map[string]string),
+		queries:    make(map[string]string),
+		middleware: []HandlerFunc{},
 	}
 
 	r.routes = append(r.routes, route)
@@ -107,8 +109,8 @@ func (r *Router) Handler(method string, fn HandlerFunc) *Route {
 // Middleware adds a middleware function to the router. These methods will be called
 // prior to the route handler and allow you to perform processing on the request before
 // your handler is executed.
-func (r *Router) Middleware(fn HandlerFunc) *Router {
-	r.middleware = append(r.middleware, fn)
+func (r *Router) Middleware(fn ...HandlerFunc) *Router {
+	r.middleware = append(r.middleware, fn...)
 
 	return r
 }
@@ -189,8 +191,10 @@ func (r *Router) ServeHTTP(req Request) (Response, error) {
 func (r *Router) performRequest(route *Route, w *responseWriter, req Request) {
 	defer r.recover(req)
 
+	wares := append(r.middleware, route.middleware...)
+
 	// Run any registered middleware
-	for _, mid := range r.middleware {
+	for _, mid := range wares {
 		// Return a response if the middleware warrants it
 		if mid(w, &req); w.code != 0 {
 			return
@@ -214,6 +218,14 @@ func (r *Route) Headers(pairs ...string) *Route {
 // parameter's presence rather than its value.
 func (r *Route) Queries(pairs ...string) *Route {
 	r.queries = mapPairs(pairs...)
+
+	return r
+}
+
+// Middleware allows you to apply middleware functions to a specific route, rather than
+// globally to all routes.
+func (r *Route) Middleware(fn ...HandlerFunc) *Route {
+	r.middleware = append(r.middleware, fn...)
 
 	return r
 }

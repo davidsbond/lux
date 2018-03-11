@@ -114,7 +114,7 @@ The second parmeter is a logrus formatter, which will output the logs as JSON. Y
 
 ## middleware
 
-You can also provide custom middleware functions that can are executed before your handler. You can prevent execution of your handler by using `w.WriteHeader` method. Any modifications to the response writer that occur during execution of middleware functions will create a response and prevent execution of the handler. Middleware methods are executed in the order they are registered.
+You can also provide custom middleware functions that can are executed before your handler. These can be registered globally or per-route. You can prevent execution of your handler by using `w.WriteHeader` method. Any modifications to the response writer that occur during execution of middleware functions will create a response and prevent execution of the handler. Middleware methods are executed in the order they are registered.
 
 ```go
 func middleware(w lux.ResponseWriter, r *lux.Request) {
@@ -130,5 +130,9 @@ func middleware(w lux.ResponseWriter, r *lux.Request) {
 You can register the middleware like this:
 
 ```go
+// Global middleware
 router.Middleware(middleware)
+
+// Route specific middleware
+router.Handler("GET", getHandler).Middleware(middleware)
 ```
