@@ -53,7 +53,9 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 
 		// AND that router has registered handlers
 		for method, handler := range tc.Handlers {
-			router.Handler(method, handler).Headers("content-type", "application/json")
+			router.Handler(method, handler).
+				Headers("content-type", "application/json").
+				Middleware(tc.Middleware)
 		}
 
 		// AND the router has registered middleware
