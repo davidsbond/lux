@@ -1,6 +1,6 @@
 # lux
 
-[![CircleCI](https://img.shields.io/circleci/project/github/davidsbond/lux.svg)](https://circleci.com/gh/davidsbond/lux)
+[![CircleCI](https://circleci.com/gh/davidsbond/lux/tree/develop.svg?style=shield)](https://circleci.com/gh/davidsbond/lux)
 [![Coverage Status](https://coveralls.io/repos/github/davidsbond/lux/badge.svg?branch=develop)](https://coveralls.io/github/davidsbond/lux?branch=develop)
 [![GoDoc](https://godoc.org/github.com/davidsbond/lux?status.svg)](http://godoc.org/github.com/davidsbond/lux)
 [![Go Report Card](https://goreportcard.com/badge/github.com/davidsbond/lux)](https://goreportcard.com/report/github.com/davidsbond/lux)
