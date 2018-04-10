@@ -67,7 +67,7 @@ type (
 	Request struct {
 		events.APIGatewayProxyRequest
 
-		Context context.Context
+		Context context.Context `json:"-"`
 	}
 
 	// The Response type represents an outgoing HTTP response.
