@@ -3,6 +3,7 @@
 package lux
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -63,7 +64,11 @@ type (
 	RecoverFunc func(PanicInfo)
 
 	// The Request type represents an incoming HTTP request.
-	Request events.APIGatewayProxyRequest
+	Request struct {
+		events.APIGatewayProxyRequest
+
+		Context context.Context
+	}
 
 	// The Response type represents an outgoing HTTP response.
 	Response events.APIGatewayProxyResponse
@@ -173,6 +178,7 @@ func (r *Router) ServeHTTP(req Request) (Response, error) {
 		body:    []byte{},
 	}
 
+	req.Context = context.Background()
 	r.performRequest(route, w, req)
 
 	resp := w.getResponse()

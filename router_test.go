@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/aws/aws-lambda-go/events"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/davidsbond/lux"
@@ -25,8 +27,10 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 		// Scenario 1: Valid request & happy path middleware
 		{
 			Request: lux.Request{
-				HTTPMethod: "GET",
-				Headers:    map[string]string{"content-type": "application/json"},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod: "GET",
+					Headers:    map[string]string{"content-type": "application/json"},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusOK,
@@ -36,8 +40,10 @@ func TestRouter_UsesMiddleware(t *testing.T) {
 		// Scenario 2: Valid request but middleware returns an error.
 		{
 			Request: lux.Request{
-				HTTPMethod: "GET",
-				Headers:    map[string]string{"content-type": "application/json"},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod: "GET",
+					Headers:    map[string]string{"content-type": "application/json"},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusInternalServerError,
@@ -82,9 +88,11 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 1: Valid GET request with correct headers.
 		{
 			Request: lux.Request{
-				HTTPMethod:            "GET",
-				Headers:               map[string]string{"content-type": "application/json"},
-				QueryStringParameters: map[string]string{"key": "value"},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod:            "GET",
+					Headers:               map[string]string{"content-type": "application/json"},
+					QueryStringParameters: map[string]string{"key": "value"},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusOK,
@@ -92,9 +100,11 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 2: Invalid GET request with incorrect header value.
 		{
 			Request: lux.Request{
-				HTTPMethod:            "GET",
-				Headers:               map[string]string{"content-type": "application/xml"},
-				QueryStringParameters: map[string]string{"key": "value"},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod:            "GET",
+					Headers:               map[string]string{"content-type": "application/xml"},
+					QueryStringParameters: map[string]string{"key": "value"},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusNotAcceptable,
@@ -103,9 +113,11 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 3: Handler does not exist
 		{
 			Request: lux.Request{
-				HTTPMethod:            "GET",
-				Headers:               map[string]string{"content-type": "application/json"},
-				QueryStringParameters: map[string]string{"key": "value"},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod:            "GET",
+					Headers:               map[string]string{"content-type": "application/json"},
+					QueryStringParameters: map[string]string{"key": "value"},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{},
 			ExpectedStatus: http.StatusMethodNotAllowed,
@@ -114,9 +126,11 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 4: Invalid GET request with no headers.
 		{
 			Request: lux.Request{
-				HTTPMethod:            "GET",
-				Headers:               map[string]string{},
-				QueryStringParameters: map[string]string{"key": "value"},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod:            "GET",
+					Headers:               map[string]string{},
+					QueryStringParameters: map[string]string{"key": "value"},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusNotAcceptable,
@@ -125,9 +139,11 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 5: Valid DELETE request with only a GET handler registered.
 		{
 			Request: lux.Request{
-				HTTPMethod:            "DELETE",
-				Headers:               map[string]string{"content-type": "application/json"},
-				QueryStringParameters: map[string]string{"key": "value"},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod:            "DELETE",
+					Headers:               map[string]string{"content-type": "application/json"},
+					QueryStringParameters: map[string]string{"key": "value"},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusMethodNotAllowed,
@@ -136,9 +152,11 @@ func TestRouter_HandlesRequests(t *testing.T) {
 		// Scenario 6: Valid GET request with missing required query params.
 		{
 			Request: lux.Request{
-				HTTPMethod:            "GET",
-				Headers:               map[string]string{"content-type": "application/json"},
-				QueryStringParameters: map[string]string{},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod:            "GET",
+					Headers:               map[string]string{"content-type": "application/json"},
+					QueryStringParameters: map[string]string{},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": getHandler},
 			ExpectedStatus: http.StatusNotAcceptable,
@@ -183,8 +201,10 @@ func TestRouter_Recovers(t *testing.T) {
 		// Scenario 1: Handler panics
 		{
 			Request: lux.Request{
-				HTTPMethod: "GET",
-				Headers:    map[string]string{"content-type": "application/json"},
+				APIGatewayProxyRequest: events.APIGatewayProxyRequest{
+					HTTPMethod: "GET",
+					Headers:    map[string]string{"content-type": "application/json"},
+				},
 			},
 			Handlers:       map[string]lux.HandlerFunc{"GET": panicHandler},
 			ExpectedStatus: http.StatusInternalServerError,
